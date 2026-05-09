@@ -65,7 +65,7 @@ Expands inhaler candidates via ATC R03 and filters to inhalation-route products 
 - **Output**:
   - `additional_inhalers.xlsx` with `NDC`, `Generic name`, `asthma_med_class_new`
 - **Caveat**:
-  - M**anual clinician review** is required to confirm asthma relevance.
+  - **Manual clinician review** is required to confirm asthma relevance.
 
 ### 3) `update_ndc_codes.ipynb`
 
@@ -86,6 +86,19 @@ Infers “current” package NDC candidates from historical NDCs using openFDA `
     - `historical_to_current_ndc_mapping_COMBINED.xlsx`
     - contains only rows with FDA matches and only **new** NDCs (`exists_in_original_file == False`)
 
+### 4) `add_subcategory.ipynb`
+
+Adds a **`med_type`** column (**Rescue** / **Controller** / **Montelukast**) from the detailed class column **`asthma_med_class_comp`**.
+
+- **Primary use**: derive analysis-ready medication groups from a spreadsheet that already has composite asthma medication classes, using the same priority as an R `case_when` (Rescue first, then Controller, then Montelukast; first match wins).
+- **Dependencies**: `pandas`, `openpyxl`.
+- **Inputs** (defaults in the notebook; edit `INPUT_XLSX` / `OUTPUT_XLSX` as needed):
+  - `Asthma NDCs_5.9.2026.xlsx` with column `asthma_med_class_comp`
+- **Outputs**:
+  - `Asthma NDCs_5.9.2026_added.xlsx` — original columns plus `med_type`
+- **Important**: `med_type` is only filled when `asthma_med_class_comp` **exactly** matches one of the strings in the notebook’s `rescue_meds`, `controller_meds`, or `montelukast_meds` sets. Unmatched or blank classes remain missing (`NA`). Confirm spelling/casing in your sheet matches those sets (or update the sets in the notebook).
+- **Context**: how Rescue / Controller / Montelukast fit the broader framework is summarized above under **Subcategory framework** and in `asthma_medication_approach.pdf`.
+
 ## Recommended run order (typical workflow)
 
 Exact filenames may vary by project snapshot; update notebook constants as needed.
@@ -96,7 +109,9 @@ Exact filenames may vary by project snapshot; update notebook constants as neede
   Run `create_inhaler_NDC_from_ATC.ipynb` to generate additional inhaler candidates and manually classify.
 3. **Infer additional candidate “current” packages for historical NDCs**
   Run `update_ndc_codes.ipynb` to produce batch mappings and (optionally) a combined “new-only hits” file.
-4. **Clinical adjudication / reconciliation**
+4. **Optional: add `med_type` (Rescue / Controller / Montelukast)**
+  Run `add_subcategory.ipynb` when the spreadsheet includes `asthma_med_class_comp` and you want a grouped column for tables or models.
+5. **Clinical adjudication / reconciliation**
   Cross-validate against existing curated lists; resolve discrepancies via manual review and targeted external checks.
 
 ## Notes and caveats
