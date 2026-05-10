@@ -84,7 +84,10 @@ Infers “current” package NDC candidates from historical NDCs using openFDA `
   - batch files: `historical_to_current_ndc_mapping_batch_001.xlsx`, `..._002.xlsx`, …
   - (optional in notebook) a consolidated file:
     - `historical_to_current_ndc_mapping_COMBINED.xlsx`
-    - contains only rows with FDA matches and only **new** NDCs (`exists_in_original_file == False`)
+    - contains only rows with FDA matches and only **new** NDCs (newness is determined by the original file rows where `asthma_med_class_comp` is **filled / not missing**)
+  - additional columns:
+    - `ROUTE` from openFDA `drug/ndc` (`route` field; multiple values joined with `; `)
+    - `current_package_ndc_11` normalization uses FDA-style 5-4-2 segment padding when the source is hyphenated (e.g., `64661-411-01` → `64661041101`)
 
 ### 4) `add_subcategory.ipynb`
 
