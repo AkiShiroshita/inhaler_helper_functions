@@ -91,7 +91,7 @@ Infers “current” package NDC candidates from historical NDCs using openFDA `
 
 ### 4) `add_subcategory.ipynb`
 
-Adds a **`med_type`** column (**Rescue** / **Controller** / **Montelukast**) from the detailed class column **`asthma_med_class_comp`**, with light label cleanup and a small set of NDC-specific overrides.
+Adds a **`med_type`** column (**Rescue** / **Controller** / **Montelukast**) from the detailed class column **`asthma_med_class_comp`**, with light label cleanup and a small set of NDC-specific overrides. The first markdown cell documents the workflow; the code cell defines the input/output paths and the class sets used for mapping.
 
 - **Primary use**: derive analysis-ready medication groups from a spreadsheet that already has composite asthma medication classes, using the same priority as an R `case_when` (Rescue first, then Controller, then Montelukast; first match wins).
 - **Dependencies**: `pandas`, `openpyxl`.
@@ -100,13 +100,18 @@ Adds a **`med_type`** column (**Rescue** / **Controller** / **Montelukast**) fro
 - **Outputs** (edit `OUTPUT_XLSX` in the notebook; default snapshot):
   - `Asthma NDCs_5.12.2026_added.xlsx` — original columns plus `med_type`, with selected updates to `asthma_med_class_comp`
 - **Label cleanup before mapping**:
-  - trim surrounding whitespace in `asthma_med_class_comp` (e.g. `Montelukast ` → `Montelukast`)
-  - rewrite plain `SABA` to `SABA inhaler`
+  - strip surrounding whitespace on `NDC` and `asthma_med_class_comp` (e.g. `Montelukast ` → `Montelukast`)
+  - rewrite plain `SABA` to **`SABA_inhaler`** (the token used in the composite-class column for inhaled SABA)
+- **Class tokens mapped to `med_type`** (must match strings in `asthma_med_class_comp`; edit the sets in the notebook if your sheet uses additional labels):
+  - **Rescue**: `SABA_inhaler`, `SABA_oral`, `SABA_iv`, `Epinephrine_inhaler`, `SAMA`, `SABA/SAMA`, `SABA/ICS`, `Methylxanthine_iv`
+  - **Controller**: `ICS`, `LABA`, `LAMA`, `ICS/LABA`, `LABA/LAMA`, `ICS/LABA/LAMA`, `Methylxanthine_oral`, `Mast_cell_stabilizers`, `Non_Montelukast_LTRA`, `5_LOX`, `Biologic`
+  - **Montelukast**: `Montelukast`
 - **NDC-specific overrides** (applied after the main mapping):
   - `51927465600` → `Montelukast` / `Montelukast`
   - `51927137000`, `51927285900`, `52959129301`, `52959146701` → `SABA_inhaler` / `Rescue`
-- **Rows left without `med_type`**: values not in the notebook’s class sets, and `Non_asthma_med`
-- **Blank composite class**: after trimming, if `asthma_med_class_comp` is still empty, it is written as **`Non_asthma_med`** and `med_type` is left missing
+- **Rows left without `med_type`**: composite values not in the sets above (until you extend the notebook), and **`Non_asthma_med`**
+- **Blank composite class**: after trimming, if `asthma_med_class_comp` is still empty (or string placeholders like `nan` / `<NA>`), it is written as **`Non_asthma_med`** and `med_type` is left missing
+- **Sanity check**: an optional second cell runs `%run sanity_checker.py` to write the `asthma_med_class_comp` × `med_type` crosstab (same as running `python sanity_checker.py` on the output file).
 - **Context**: how Rescue / Controller / Montelukast fit the broader framework is summarized above under **Subcategory framework** and in `asthma_medication_approach.pdf`.
 
 ### 5) `sanity_checker.py`
@@ -128,9 +133,9 @@ Exact filenames may vary by project snapshot; update notebook constants as neede
 3. **Infer additional candidate “current” packages for historical NDCs**
   Run `update_ndc_codes.ipynb` to produce batch mappings and (optionally) a combined “new-only hits” file.
 4. **Optional: add `med_type` (Rescue / Controller / Montelukast)**
-  Run `add_subcategory.ipynb` when the spreadsheet includes `asthma_med_class_comp` and you want a grouped column for tables or models.
+  Run `add_subcategory.ipynb` when the spreadsheet includes `asthma_med_class_comp` and you want a grouped column for tables or models. The notebook can end with `%run sanity_checker.py` for an immediate crosstab.
 5. **Optional: cross-tab `asthma_med_class_comp` by `med_type`**
-  Run `sanity_checker.py` (or pass `--input` to your `*_added.xlsx`) to review the mapping.
+  Run `sanity_checker.py` (or pass `--input` to your `*_added.xlsx`) to review the mapping if you skipped the `%run` cell.
 6. **Clinical adjudication / reconciliation**
   Cross-validate against existing curated lists; resolve discrepancies via manual review and targeted external checks.
 
